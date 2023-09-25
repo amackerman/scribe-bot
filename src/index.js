@@ -1,10 +1,12 @@
-require('dotenv').config();
-const { Client, IntentsBitField} = require('discord.js');
-const createCommand = require('./createCommand.js');
-const updateCommand = require('./updateCommand.js');
-const deleteCommand = require('./deleteCommand.js');
-const infoCommand = require('./infoCommand.js');
-const linksCommand = require('./linksCommand.js');
+require("dotenv").config();
+const { Client, IntentsBitField } = require("discord.js");
+const createCommand = require("./createCommand.js");
+const updateCommand = require("./updateCommand.js");
+const deleteCommand = require("./deleteCommand.js");
+const infoCommand = require("./infoCommand.js");
+const listCommand = require("./listCommand.js");
+const fetchLinkCommand = require("./fetchLinkCommand.js");
+const formatCommand = require("./formatCommand.js");
 
 const client = new Client({
     intents: [
@@ -15,34 +17,65 @@ const client = new Client({
     ],
 });
 
-client.on('ready', (c) => {
+client.on("ready", (c) => {
     console.log(`${c.user.tag} is online.`);
 });
 
-client.on('interactionCreate', async (interaction) => {
+client.on("interactionCreate", async (interaction) => {
     console.log("Received interaction:", interaction.commandName);
 
-    if (!interaction.isChatInputCommand()) return;
+    if (interaction.isChatInputCommand()) {
+        // Handle commands
+        switch (interaction.commandName) {
+            case "info":
+                infoCommand(interaction);
+                break;
 
-    if (interaction.commandName === 'info') {
-        infoCommand(interaction);
+            case "create":
+                createCommand(interaction, client);
+                break;
 
-    }
+            case "update":
+                updateCommand(interaction);
+                break;
 
-    if (interaction.commandName === 'create') {
-        createCommand(interaction, client);
-    }
+            case "delete":
+                deleteCommand(interaction); // Remember this function should handle both the command and button interactions.
+                break;
 
-    if (interaction.commandName === 'update') {
-        updateCommand(interaction);
-    }
+            case "list":
+                listCommand(interaction);
+                break;
 
-    if (interaction.commandName === 'delete') {
-        deleteCommand(interaction);
-    }
+            case "fetch-link":
+                fetchLinkCommand(interaction);
+                break;
 
-    if (interaction.commandName === 'links') {
-        linksCommand(interaction);
+            case "format":
+                formatCommand(interaction);
+                break;
+
+            default:
+                console.warn("Unhandled command:", interaction.commandName);
+                break;
+        }
+    } else if (interaction.isButton()) {
+        // Handle button interactions
+        switch (interaction.customId) {
+            case "confirmDelete":
+            case "cancelDelete":
+                deleteCommand(interaction); // Remember this function should handle both the command and button interactions.
+                break;
+
+            // Add more cases here for other buttons if needed
+
+            default:
+                console.warn(
+                    "Unhandled button interaction:",
+                    interaction.customId
+                );
+                break;
+        }
     }
 });
 

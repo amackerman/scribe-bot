@@ -1,17 +1,46 @@
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder } = require("discord.js");
 
 function generateInfoEmbed() {
     return new EmbedBuilder()
         .setTitle("Bot Info")
-        .setDescription("This Bot will take the contents of a thread and add them to a google Doc.")
-        .setAuthor({ name: "Proudofthefish"} )
-        .setColor('#C0C0C0')
+        .setDescription(
+            "This Bot will take the contents of a thread and add them to a google Doc."
+        )
+        .setAuthor({ name: "Proudofthefish" })
+        .setColor("#C0C0C0")
         .addFields(
-            { name: 'Create Command', value: 'This Command creates a google doc from a thread. It requires the doc to be named and a folder to be selected', inline: true },
-            { name: 'Update Command', value: 'Thus command updates an exiting doc.  It;s currently broken,', inline: true },
-            { name: 'Delete Command', value: 'This command deletes a doc.  It currently does not ask for a confirmation,  Use at your own risk,', inline: true },
-    )
-        .setFooter({ text: 'Under Development' });
+            {
+                name: "Create Command",
+                value: "This command creates a google doc from a thread. It requires the doc to be named and a folder to be selected",
+                inline: false,
+            },
+            {
+                name: "Update Command",
+                value: "This command updates an exiting doc.",
+                inline: false,
+            },
+            {
+                name: "Delete Command",
+                value: "This command deletes a doc.  It requires cnfirmation,",
+                inline: false,
+            },
+            {
+                name: "List Command",
+                value: "This command returns a list of links of documents currently in the storage list and their associated thread titles.",
+                inline: false,
+            },
+            {
+                name: "Fetch Link Command",
+                value: "This command is used to add the google doc id  and the thread it is assiiated with to the storage doc for older threads completed before implementation of the bot. ",
+                inline: false,
+            },
+            {
+                name: "Format Command",
+                value: "This command will format words between ** to in Italics.  It is currently broken.",
+                inline: false,
+            }
+        )
+        .setFooter({ text: "Under Development" });
 }
 
 function infoCommand(interaction) {

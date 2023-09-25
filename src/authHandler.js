@@ -1,18 +1,18 @@
-const { google } = require('googleapis');
+const { google } = require("googleapis");
 const OAuth2 = google.auth.OAuth2;
-const readline = require('readline');
-const { loadToken, saveToken } = require('./tokenHandler');
-require('dotenv').config();
+const readline = require("readline");
+const { loadToken, saveToken } = require("./tokenHandler");
+require("dotenv").config();
 
-const SCOPES = ['https://www.googleapis.com/auth/drive'];
+const SCOPES = ["https://www.googleapis.com/auth/drive"];
 
 function getNewToken(oAuth2Client) {
     const authUrl = oAuth2Client.generateAuthUrl({
-        access_type: 'offline',
+        access_type: "offline",
         scope: SCOPES,
     });
 
-    console.log('Authorize this app by visiting this url:', authUrl);
+    console.log("Authorize this app by visiting this url:", authUrl);
 
     const rl = readline.createInterface({
         input: process.stdin,
@@ -20,12 +20,12 @@ function getNewToken(oAuth2Client) {
     });
 
     return new Promise((resolve, reject) => {
-        rl.question('Enter the code from that page here: ', (code) => {
+        rl.question("Enter the code from that page here: ", (code) => {
             rl.close();
 
             oAuth2Client.getToken(code, (err, token) => {
                 if (err) {
-                    return reject('Error retrieving access token', err);
+                    return reject("Error retrieving access token", err);
                 }
 
                 resolve(token);
@@ -41,7 +41,7 @@ async function getAuthenticatedClient() {
     const oAuth2Client = new OAuth2(
         GCLIENT_ID,
         CLIENT_SECRET,
-        'urn:ietf:wg:oauth:2.0:oob'
+        "urn:ietf:wg:oauth:2.0:oob"
     );
 
     const token = loadToken();
@@ -58,5 +58,5 @@ async function getAuthenticatedClient() {
 }
 
 module.exports = {
-    getAuthenticatedClient
+    getAuthenticatedClient,
 };
