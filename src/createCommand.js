@@ -1,12 +1,11 @@
-const { EmbedBuilder } = require("discord.js");
+const { EmbedBuilder } = require("discord.js"); // Ensure this import path is correct
 const { google } = require("googleapis");
-const { getAuthenticatedClient } = require("./authHandler");
-const fs = require("fs");
+const fs = require("fs").promises;
 const path = require("path");
 
 const DOC_STORAGE_PATH = path.join(__dirname, "docStorage.json");
 
-const createCommand = async (interaction, client) => {
+const createCommand = async (interaction, client, authenticatedClient) => {
     const chosenFolderId = interaction.options.getString("folder");
     const docName = interaction.options.getString("docname");
 
@@ -20,9 +19,10 @@ const createCommand = async (interaction, client) => {
     const contentArray = userMessages.map((m) => m.content);
 
     try {
-        const oAuth2Client = await getAuthenticatedClient();
-
-        const drive = google.drive({ version: "v3", auth: oAuth2Client });
+        const drive = google.drive({
+            version: "v3",
+            auth: authenticatedClient,
+        });
         const fileMetadata = {
             name: docName,
             mimeType: "application/vnd.google-apps.document",
@@ -36,9 +36,10 @@ const createCommand = async (interaction, client) => {
         const documentId = doc.data.id;
         console.log("Google Doc created with ID:", documentId);
 
-        const docs = google.docs({ version: "v1", auth: oAuth2Client });
+        const docs = google.docs({ version: "v1", auth: authenticatedClient });
 
-        const allContent = contentArray.join("\n");
+        const allContent = contentArray.join("\n") + "\n";
+
         await docs.documents.batchUpdate({
             documentId: documentId,
             requestBody: {
@@ -56,32 +57,44 @@ const createCommand = async (interaction, client) => {
         });
         console.log("Inserted all content to the document.");
 
-        let currentStorage = {};
-        if (fs.existsSync(DOC_STORAGE_PATH)) {
-            currentStorage = JSON.parse(
-                fs.readFileSync(DOC_STORAGE_PATH, "utf8")
+        let docStorage = {};
+        try {
+            const fileContent = await fs.readFile(DOC_STORAGE_PATH, "utf8");
+            docStorage = JSON.parse(fileContent);
+        } catch (error) {
+            console.error(
+                "Could not read docStorage.json, initializing empty storage.",
+                error
             );
         }
 
-        // Correcting the way we get the last message
-        const lastMessageId = userMessages[userMessages.length - 1].id;
+        const wordCount = allContent.split(/\s+/).filter(Boolean).length;
 
-        currentStorage[thread.id] = {
+        docStorage[thread.id] = {
             googleDocId: documentId,
-            lastMessageId: lastMessageId,
+            lastMessageId: userMessages[userMessages.length - 1].id,
+            title: docName,
+            wordCount: wordCount,
         };
 
-        fs.writeFileSync(
+        await fs.writeFile(
             DOC_STORAGE_PATH,
-            JSON.stringify(currentStorage, null, 4)
+            JSON.stringify(docStorage, null, 4)
         );
 
         const docLink = `https://docs.google.com/document/d/${documentId}/edit`;
+
+        // Ensure this usage aligns with your actual EmbedBuilder implementation
         const embed = new EmbedBuilder()
             .setTitle(docName)
             .setDescription(`[Click here to view the document](${docLink})`)
             .setColor("#34a853")
-            .setFooter({ text: "Google Doc Created Successfully" });
+            .addFields({
+                name: "Word Count",
+                value: `This document is ${wordCount} words long`,
+                inline: false,
+            })
+            .setFooter({ text: "Under Development" });
 
         interaction.editReply({ embeds: [embed] });
     } catch (error) {

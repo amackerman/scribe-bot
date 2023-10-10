@@ -1,43 +1,46 @@
 const { google } = require("googleapis");
 const fs = require("fs").promises;
-const { getAuthenticatedClient } = require("./authHandler");
 const path = require("path");
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js"); // Make sure to import these classes
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 
 const absolutePathToDocStorage = path.join(__dirname, "docStorage.json");
 
-async function deleteCommand(interaction) {
-    if (interaction.isButton()) {
-        if (interaction.customId === "confirmDelete") {
-            return await processDeletion(interaction);
-        } else if (interaction.customId === "cancelDelete") {
-            return interaction.reply("Deletion process aborted.");
+async function deleteCommand(interaction, authenticatedClient) {
+    try {
+        if (interaction.isButton()) {
+            return interaction.customId === "confirmDelete"
+                ? await processDeletion(interaction, authenticatedClient)
+                : interaction.reply("Deletion process aborted.");
         }
-    } else {
+
         const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                 .setCustomId("confirmDelete")
                 .setLabel("Confirm Delete")
-                .setStyle(ButtonStyle.Danger), // DANGER corresponds to the red, destructive action button
+                .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
                 .setCustomId("cancelDelete")
                 .setLabel("Cancel")
-                .setStyle(ButtonStyle.Secondary) // SECONDARY corresponds to a grey, less emphasized button
+                .setStyle(ButtonStyle.Secondary)
         );
+
         await interaction.reply({
             content: "Are you sure you want to delete this Google Doc?",
             components: [row],
-            ephemeral: true, // Set to true if you want the reply to be visible only to the user who invoked the command
+            ephemeral: true,
         });
+    } catch (error) {
+        console.error("Error in deleteCommand:", error);
+        interaction.reply("An error occurred while handling your request.");
     }
 }
 
-async function processDeletion(interaction) {
+async function processDeletion(interaction, authenticatedClient) {
     try {
         console.log("Processing delete command...");
 
+        // Read docStorage and check if threadId exists and has a googleDocId.
         const threadId = interaction.channelId;
-
         const docStorageRaw = await fs.readFile(
             absolutePathToDocStorage,
             "utf-8"
@@ -55,10 +58,16 @@ async function processDeletion(interaction) {
 
         const docId = docStorage[threadId].googleDocId;
 
-        const auth = await getAuthenticatedClient();
-        const drive = google.drive({ version: "v3", auth });
+        console.log("Deleting DocId:", docId);
+
+        const drive = google.drive({
+            version: "v3",
+            auth: authenticatedClient,
+        });
+
         await drive.files.delete({ fileId: docId });
 
+        // Update docStorage
         delete docStorage[threadId];
         await fs.writeFile(
             absolutePathToDocStorage,
@@ -69,6 +78,12 @@ async function processDeletion(interaction) {
         interaction.reply("Successfully deleted the Google Doc.");
     } catch (error) {
         console.error("Error while deleting the Google Doc:", error);
+        if (error.response && error.response.status === 401) {
+            console.error(
+                "Unauthorized access - perhaps the token is expired or invalid."
+            );
+            // You might want to refresh the token here, if possible, and reattempt the deletion.
+        }
         interaction.reply("There was an error deleting the Google Doc.");
     }
 }

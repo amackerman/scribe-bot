@@ -55,29 +55,34 @@ const commands = [
             "This populates a list of links of documents that have been created in an embed.",
     },
     {
-        name: "fetch-link",
+        name: "fetch-info",
 
         description:
-            "This fetches a link in the thread and adds it to doc storage.",
+            "This fetches any miissing info from the Doc Storage file.",
+    },
+    {
+        name: "word-count",
+
+        description: "This lists the links by word count in descending order.",
     },
     {
         name: "format",
 
         description:
-            "TThis adds itallics to the doc where there currently is markup.",
+            "This adds itallics to the doc where there currently is markup.",
     },
 ];
 
 console.log("Commands initialized:", commands);
 
-const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
+const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
 
 (async () => {
     try {
         console.log("Registering slash commands...");
         await rest.put(
             Routes.applicationGuildCommands(
-                process.env.CLIENT_ID,
+                process.env.DISCORD_CLIENT_ID,
                 process.env.GUILD_ID
             ),
             { body: commands }

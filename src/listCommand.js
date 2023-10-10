@@ -29,7 +29,7 @@ async function linksListEmbed(guild) {
         .setDescription(
             "This is the current list of documents created with the bot and a link to access them."
         )
-        .setAuthor({ name: "Bartlby the scrivener" })
+        .setAuthor({ name: "Bartleby the Scrivener" })
         .setColor("#C0C0C0")
         .addFields(fields)
         .setFooter({ text: "Under Development" });

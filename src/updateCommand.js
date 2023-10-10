@@ -1,6 +1,5 @@
 const { google } = require("googleapis");
 const fs = require("fs").promises;
-const { getAuthenticatedClient } = require("./authHandler");
 const path = require("path");
 
 const absolutePathToDocStorage = path.join(__dirname, "docStorage.json");
@@ -46,7 +45,7 @@ async function appendTextToDoc(docs, docId, textToAppend) {
     console.log("Text appended successfully to the document.");
 }
 
-async function updateCommand(interaction) {
+async function updateCommand(interaction, authenticatedClient) {
     try {
         console.log("Starting the update command...");
         await interaction.deferReply();
@@ -65,8 +64,7 @@ async function updateCommand(interaction) {
         }
 
         const docId = docStorage[threadId].googleDocId;
-        const auth = await getAuthenticatedClient();
-        const docs = google.docs({ version: "v1", auth });
+        const docs = google.docs({ version: "v1", auth: authenticatedClient });
 
         const lastMessageId = docStorage[threadId].lastMessageId;
         const messages = await interaction.channel.messages.fetch({
