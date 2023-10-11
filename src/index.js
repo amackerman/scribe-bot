@@ -6,7 +6,6 @@ const deleteCommand = require("./deleteCommand");
 const infoCommand = require("./infoCommand");
 const listCommand = require("./listCommand");
 const fetchInfoCommand = require("./fetchInfoCommand");
-const formatCommand = require("./formatCommand");
 const wordCountCommand = require("./wordCountCommand");
 const { initializeAuthenticatedClient } = require("./authHandler"); // Assuming authHandler exports this function
 
@@ -66,9 +65,6 @@ client.on("interactionCreate", async (interaction) => {
                     break;
                 case "fetch-info":
                     await fetchInfoCommand(interaction, authenticatedClient);
-                    break;
-                case "format":
-                    await formatCommand(interaction);
                     break;
                 case "word-count":
                     await wordCountCommand(interaction);

@@ -6,7 +6,7 @@ const { getAuthenticatedClient, refreshAccessToken } = require("./authHandler");
 
 const absolutePathToDocStorage = path.join(__dirname, "docStorage.json");
 
-async function fetchInfo(interaction) {
+async function fetchInfoCommand(interaction) {
     let threadId = interaction.channelId;
 
     try {
@@ -17,6 +17,7 @@ async function fetchInfo(interaction) {
         console.log(`Thread ID: ${threadId}`);
 
         if (!threadId) {
+            console.log("No thread ID found.");
             return interaction.reply("No thread ID found.");
         }
 
@@ -26,7 +27,13 @@ async function fetchInfo(interaction) {
                 "utf-8"
             );
             const docStorage = JSON.parse(docStorageRaw);
+            console.log(
+                `Current docStorage for thread ${threadId}:`,
+                docStorage[threadId]
+            );
+
             let docId = docStorage[threadId]?.googleDocId;
+            console.log(`Doc ID retrieved from storage: ${docId}`);
 
             let auth;
             try {
@@ -44,12 +51,13 @@ async function fetchInfo(interaction) {
                 try {
                     return await apiCall();
                 } catch (err) {
+                    console.error("API call error: ", err);
                     if (err.code === 401) {
-                        // Check for unauthorized error, which suggests token expiry
                         try {
                             await refreshAccessToken(auth);
                             return await apiCall();
                         } catch (refreshErr) {
+                            console.error("Token refresh error: ", refreshErr);
                             throw new Error(
                                 "Failed to refresh the access token"
                             );
@@ -71,6 +79,21 @@ async function fetchInfo(interaction) {
                     const doc = await handleApiCall(() =>
                         docs.documents.get({ documentId: docId })
                     );
+                    console.log(`Title fetched: ${doc.data.title}`);
+
+                    if (!docStorage[threadId]) {
+                        docStorage[threadId] = {};
+                    }
+                    docStorage[threadId].title = doc.data.title;
+
+                    await fs.writeFile(
+                        absolutePathToDocStorage,
+                        JSON.stringify(docStorage, null, 4)
+                    );
+                    console.log(
+                        `Title written to docStorage: ${docStorage[threadId].title}`
+                    );
+
                     return interaction.reply(`Title: ${doc.data.title}`);
                 }
                 case "fetch_word_count": {
@@ -84,25 +107,91 @@ async function fetchInfo(interaction) {
                         docs.documents.get({ documentId: docId })
                     );
                     const wordCount =
-                        doc.data.body?.content.reduce(
-                            (count, item) =>
-                                count +
-                                (item.paragraph?.elements.reduce(
-                                    (pCount, element) =>
-                                        pCount +
-                                        (element.textRun
+                        doc.data.body?.content.reduce((count, item) => {
+                            const paragraphCount =
+                                item.paragraph?.elements.reduce(
+                                    (pCount, element) => {
+                                        const elementCount = element.textRun
                                             ? element.textRun.content.split(
                                                   /\s+/
                                               ).length
-                                            : 0),
+                                            : 0;
+                                        return pCount + elementCount;
+                                    },
                                     0
-                                ) || 0),
-                            0
-                        ) || 0;
+                                ) || 0;
+                            return count + paragraphCount;
+                        }, 0) || 0;
+
+                    console.log(`Word count fetched: ${wordCount}`);
+
+                    if (!docStorage[threadId]) {
+                        docStorage[threadId] = {};
+                    }
+                    docStorage[threadId].wordCount = wordCount;
+
+                    await fs.writeFile(
+                        absolutePathToDocStorage,
+                        JSON.stringify(docStorage, null, 4)
+                    );
+                    console.log(
+                        `Word count written to docStorage: ${docStorage[threadId].wordCount}`
+                    );
 
                     return interaction.reply(`Word Count: ${wordCount}`);
                 }
-                // ... other cases (unchanged)
+                case "fetch_link": {
+                    try {
+                        const messages =
+                            await interaction.channel.messages.fetch({
+                                limit: 10,
+                            });
+                        const docLinkRegex =
+                            /https:\/\/docs\.google\.com\/document\/d\/([\w-]+)/i;
+
+                        for (const message of messages.values()) {
+                            const match = message.content.match(docLinkRegex);
+                            if (match) {
+                                const docId = match[1];
+                                console.log(
+                                    `Doc ID found in message: ${docId}`
+                                );
+
+                                if (!docStorage[threadId]) {
+                                    docStorage[threadId] = {};
+                                }
+
+                                docStorage[threadId].googleDocId = docId;
+
+                                console.log(
+                                    "Attempting to write to docStorage.json:",
+                                    docStorage[threadId]
+                                );
+                                await fs.writeFile(
+                                    absolutePathToDocStorage,
+                                    JSON.stringify(docStorage, null, 4)
+                                );
+                                console.log(
+                                    "Write to docStorage.json successful."
+                                );
+
+                                return interaction.reply(
+                                    `Updated docStorage with Google Doc ID from link: ${docId}`
+                                );
+                            }
+                        }
+
+                        console.log("No Google Docs link found.");
+                        return interaction.reply(
+                            "No Google Docs link found in the last 10 messages."
+                        );
+                    } catch (error) {
+                        console.error("Error fetching link: ", error);
+                        return interaction.reply(
+                            "Failed to fetch and process Google Docs link."
+                        );
+                    }
+                }
             }
         } else {
             const row = new ActionRowBuilder().addComponents(
@@ -131,9 +220,9 @@ async function fetchInfo(interaction) {
             });
         }
     } catch (error) {
-        console.error("General error during fetchInfo execution:", error);
+        console.error("Error in fetchInfo:", error);
         return interaction.reply("An error occurred while fetching info.");
     }
 }
 
-module.exports = fetchInfo;
+module.exports = fetchInfoCommand;

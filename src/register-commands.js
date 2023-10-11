@@ -65,12 +65,6 @@ const commands = [
 
         description: "This lists the links by word count in descending order.",
     },
-    {
-        name: "format",
-
-        description:
-            "This adds itallics to the doc where there currently is markup.",
-    },
 ];
 
 console.log("Commands initialized:", commands);
