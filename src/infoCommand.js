@@ -31,12 +31,7 @@ function generateInfoEmbed() {
             },
             {
                 name: "Fetch Link Command",
-                value: "This command is used to add the google doc id  and the thread it is assiiated with to the storage doc for older threads completed before implementation of the bot. ",
-                inline: false,
-            },
-            {
-                name: "Format Command",
-                value: "This command will format words between ** to in Italics.  It is currently broken.",
+                value: "This command is used to add the google doc id, word count, title, and the thread it is assiiated with to the storage doc for older threads completed before implementation of the bot. ",
                 inline: false,
             }
         )

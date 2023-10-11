@@ -5,6 +5,26 @@ const path = require("path");
 
 const DOC_STORAGE_PATH = path.join(__dirname, "docStorage.json");
 
+const wait = async (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const fetchAllMessages = async (channel, lastId) => {
+    const fetchOptions = { limit: 100 };
+    if (lastId) fetchOptions.before = lastId;
+
+    const messages = await channel.messages.fetch(fetchOptions);
+    const lastMessageId = messages.last() ? messages.last().id : null;
+
+    // Adding a delay to avoid hitting rate limits
+    await wait(1000);
+
+    if (messages.size === 0 || !lastMessageId) {
+        return messages;
+    }
+
+    const olderMessages = await fetchAllMessages(channel, lastMessageId);
+    return messages.concat(olderMessages);
+};
+
 const createCommand = async (interaction, client, authenticatedClient) => {
     const chosenFolderId = interaction.options.getString("folder");
     const docName = interaction.options.getString("docname");
@@ -12,13 +32,13 @@ const createCommand = async (interaction, client, authenticatedClient) => {
     await interaction.deferReply();
 
     const thread = interaction.channel;
-    const messages = await thread.messages.fetch();
-    const userMessages = [...messages.values()]
-        .filter((message) => message.author.id !== client.user.id)
-        .reverse();
-    const contentArray = userMessages.map((m) => m.content);
-
     try {
+        const messages = await fetchAllMessages(thread);
+        const userMessages = [...messages.values()]
+            .filter((message) => message.author.id !== client.user.id)
+            .reverse();
+        const contentArray = userMessages.map((m) => m.content);
+
         const drive = google.drive({
             version: "v3",
             auth: authenticatedClient,
@@ -37,8 +57,11 @@ const createCommand = async (interaction, client, authenticatedClient) => {
         console.log("Google Doc created with ID:", documentId);
 
         const docs = google.docs({ version: "v1", auth: authenticatedClient });
-
-        const allContent = contentArray.join("\n") + "\n";
+        const allContent =
+            contentArray
+                .map((content) => "\t" + content.replace(/\n/g, "\n\t"))
+                .join("\n")
+                .trimStart() + "\n";
 
         await docs.documents.batchUpdate({
             documentId: documentId,
@@ -69,14 +92,12 @@ const createCommand = async (interaction, client, authenticatedClient) => {
         }
 
         const wordCount = allContent.split(/\s+/).filter(Boolean).length;
-
         docStorage[thread.id] = {
             googleDocId: documentId,
             lastMessageId: userMessages[userMessages.length - 1].id,
             title: docName,
             wordCount: wordCount,
         };
-
         await fs.writeFile(
             DOC_STORAGE_PATH,
             JSON.stringify(docStorage, null, 4)
@@ -84,7 +105,6 @@ const createCommand = async (interaction, client, authenticatedClient) => {
 
         const docLink = `https://docs.google.com/document/d/${documentId}/edit`;
 
-        // Ensure this usage aligns with your actual EmbedBuilder implementation
         const embed = new EmbedBuilder()
             .setTitle(docName)
             .setDescription(`[Click here to view the document](${docLink})`)
@@ -96,11 +116,11 @@ const createCommand = async (interaction, client, authenticatedClient) => {
             })
             .setFooter({ text: "Under Development" });
 
-        interaction.editReply({ embeds: [embed] });
+        interaction.editReply({ embeds: [embed], ephemeral: true});
     } catch (error) {
         console.error("Error while creating the Google Doc:", error);
         interaction.editReply(
-            `Failed to create Google Doc named '${docName}'.`
+            `Failed to create Google Doc named '${docName}'. Error: ${error.message}`
         );
     }
 };

@@ -11,15 +11,18 @@ async function linksListEmbed(guild) {
     // Convert docs object into an array
     const docsArray = Object.entries(docs);
 
-    // Retrieve and cache thread names to minimize interactions with Discord API during sorting
-    const threadNames = {};
+    // Retrieve and cache display names to minimize interactions with Discord API during sorting
+    const displayNames = {};
 
-    for (let [threadId] of docsArray) {
-        const thread = guild.channels.cache.get(threadId);
-        threadNames[threadId] = thread ? thread.name : `Thread ${threadId}`;
+    for (let [threadId, doc] of docsArray) {
+        // Use stored title, fallback to thread name, and finally thread ID if necessary
+        displayNames[threadId] =
+            doc.title ||
+            guild.channels.cache.get(threadId)?.name ||
+            `Thread ${threadId}`;
     }
 
-    // Sort the array by word count in descending order, and secondarily by thread name in ascending order
+    // Sort the array by word count in descending order, and secondarily by display name in ascending order
     const sortedDocs = docsArray.sort(([idA, docA], [idB, docB]) => {
         if ("wordCount" in docA && "wordCount" in docB) {
             const diff = docB.wordCount - docA.wordCount;
@@ -30,8 +33,8 @@ async function linksListEmbed(guild) {
             return 1; // Place docs with a word count above those without
         }
 
-        // Secondary sort (either if word counts are equal or neither doc has a word count) by thread name
-        return threadNames[idA].localeCompare(threadNames[idB]);
+        // Secondary sort (either if word counts are equal or neither doc has a word count) by display name
+        return displayNames[idA].localeCompare(displayNames[idB]);
     });
 
     for (let [threadId, doc] of sortedDocs) {
@@ -46,7 +49,7 @@ async function linksListEmbed(guild) {
         }
 
         fields.push({
-            name: threadNames[threadId],
+            name: displayNames[threadId],
             value: valueText,
             inline: false,
         });
