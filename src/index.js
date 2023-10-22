@@ -52,7 +52,11 @@ client.on("interactionCreate", async (interaction) => {
                     await infoCommand(interaction);
                     break;
                 case "create":
-                    await createCommand(interaction, client, authenticatedClient);
+                    await createCommand(
+                        interaction,
+                        client,
+                        authenticatedClient
+                    );
                     break;
                 case "update":
                     await updateCommand(interaction, authenticatedClient);
@@ -89,6 +93,9 @@ client.on("interactionCreate", async (interaction) => {
                 case "fetch_title":
                 case "fetch_word_count":
                 case "fetch_link":
+                case "set_universe":
+                case "universe_option_1":
+                case "universe_option_2":
                 case "cancel_fetch":
                     await fetchInfoCommand(interaction, authenticatedClient);
                     break;

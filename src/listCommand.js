@@ -4,13 +4,18 @@ const { EmbedBuilder } = require("discord.js");
 
 const absolutePathToDocStorage = path.join(__dirname, "docStorage.json");
 
-async function linksListEmbed(guild) {
+async function linksListEmbed(guild, universe) {
     const docStorageRaw = await fs.readFile(absolutePathToDocStorage, "utf-8");
     const docs = JSON.parse(docStorageRaw);
 
     const fields = [];
 
     for (let threadId in docs) {
+        // Filter based on the universe parameter
+        if (docs[threadId].universe !== universe) {
+            continue;
+        }
+
         const googleDocId = docs[threadId].googleDocId;
         const docLink = `https://docs.google.com/document/d/${googleDocId}/edit`;
 
@@ -42,9 +47,9 @@ async function linksListEmbed(guild) {
     }
 
     return new EmbedBuilder()
-        .setTitle("Link List")
+        .setTitle(`Link List for ${universe}`)
         .setDescription(
-            "This is the current list of documents created with the bot and a link to access them."
+            `This is the current list of documents created with the bot for the ${universe} universe and a link to access them.`
         )
         .setAuthor({ name: "Bartleby the Scrivener" })
         .setColor("#C0C0C0")
@@ -54,7 +59,18 @@ async function linksListEmbed(guild) {
 
 async function listCommand(interaction) {
     await interaction.deferReply();
-    const embed = await linksListEmbed(interaction.guild); // Passing the guild object to the function
+
+    // Get the 'universe' option from the interaction
+    const universe = interaction.options.getString("universe");
+
+    // If no universe is provided, you might want to send an error message or default to a particular universe.
+    if (!universe) {
+        return interaction.editReply(
+            "Please specify a universe using the `/list universe:<universe_name>` command."
+        );
+    }
+
+    const embed = await linksListEmbed(interaction.guild, universe); // Passing the guild object and universe to the function
     interaction.editReply({ embeds: [embed] });
 }
 

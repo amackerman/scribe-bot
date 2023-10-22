@@ -50,19 +50,28 @@ const commands = [
     },
     {
         name: "list",
-
-        description:
-            "This populates a list of links of documents that have been created in an embed.",
+        description: "List documents based on universe",
+        options: [
+            {
+                name: "universe",
+                type: 3,
+                description: "Name of the universe to filter by",
+                required: true,
+                choices: [
+                    { name: "AoA", value: "AoA" },
+                    { name: "Kidsverse", value: "Kidsverse" },
+                    // add other universes as they become available
+                ],
+            },
+        ],
     },
     {
         name: "fetch-info",
-
         description:
             "This fetches any miissing info from the Doc Storage file.",
     },
     {
         name: "word-count",
-
         description: "This lists the links by word count in descending order.",
     },
 ];
