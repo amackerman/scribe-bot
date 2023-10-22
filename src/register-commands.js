@@ -74,6 +74,10 @@ const commands = [
         name: "word-count",
         description: "This lists the links by word count in descending order.",
     },
+    {
+        name: "random-name",
+        description: "This generates a random name form a stored list.",
+    },
 ];
 
 console.log("Commands initialized:", commands);

@@ -7,6 +7,7 @@ const infoCommand = require("./infoCommand");
 const listCommand = require("./listCommand");
 const fetchInfoCommand = require("./fetchInfoCommand");
 const wordCountCommand = require("./wordCountCommand");
+const generateNameCommand = require("./generateNameCommand");
 const { initializeAuthenticatedClient } = require("./authHandler"); // Assuming authHandler exports this function
 
 let authenticatedClient; // Global variable to store the authenticated client
@@ -73,6 +74,9 @@ client.on("interactionCreate", async (interaction) => {
                 case "word-count":
                     await wordCountCommand(interaction);
                     break;
+                case "random-name":
+                    await generateNameCommand(interaction);
+                    break;
                 default:
                     console.warn(
                         `⚠️ Unhandled command: ${interaction.commandName}`
@@ -98,6 +102,11 @@ client.on("interactionCreate", async (interaction) => {
                 case "universe_option_2":
                 case "cancel_fetch":
                     await fetchInfoCommand(interaction, authenticatedClient);
+                    break;
+                case "female-name":
+                case "male-name":
+                case "either-name":
+                    await generateNameCommand(interaction);
                     break;
                 default:
                     console.warn(
