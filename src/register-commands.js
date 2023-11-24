@@ -78,6 +78,10 @@ const commands = [
         name: "random-name",
         description: "This generates a random name form a stored list.",
     },
+    {
+        name: "elvish",
+        description: "This gives a list of elvish phrases.",
+    },
 ];
 
 console.log("Commands initialized:", commands);

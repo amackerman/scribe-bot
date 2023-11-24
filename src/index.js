@@ -8,7 +8,8 @@ const listCommand = require("./listCommand");
 const fetchInfoCommand = require("./fetchInfoCommand");
 const wordCountCommand = require("./wordCountCommand");
 const generateNameCommand = require("./generateNameCommand");
-const { initializeAuthenticatedClient } = require("./authHandler"); // Assuming authHandler exports this function
+const { initializeAuthenticatedClient } = require("./authHandler");
+const elvishCommand = require("./elvishCommand");
 
 let authenticatedClient; // Global variable to store the authenticated client
 
@@ -74,8 +75,11 @@ client.on("interactionCreate", async (interaction) => {
                 case "word-count":
                     await wordCountCommand(interaction);
                     break;
-                case "random-name":
+                 case "random-name":
                     await generateNameCommand(interaction);
+                    break;
+                case "elvish":
+                    await elvishCommand(interaction);
                     break;
                 default:
                     console.warn(

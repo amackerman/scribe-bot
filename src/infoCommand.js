@@ -26,7 +26,7 @@ function generateInfoEmbed() {
             },
             {
                 name: "List Command",
-                value: "This command returns a list of links of documents currently in the storage list and their associated thread titles.",
+                value: "This command returns a list of links of documents currently in the storage list and their associated thread titles. You now must choose whic uniniverse to list. Age of Ashes or Kidsverse.",
                 inline: false,
             },
             {
