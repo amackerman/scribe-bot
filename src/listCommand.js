@@ -7,6 +7,7 @@ const absolutePathToDocStorage = path.join(__dirname, "docStorage.json");
 async function linksListEmbed(guild, universe) {
     const docStorageRaw = await fs.readFile(absolutePathToDocStorage, "utf-8");
     const docs = JSON.parse(docStorageRaw);
+    //console.log("Read docStorage", docs);
 
     const fields = [];
 
@@ -60,18 +61,18 @@ async function linksListEmbed(guild, universe) {
 async function listCommand(interaction) {
     await interaction.deferReply();
 
-    // Get the 'universe' option from the interaction
     const universe = interaction.options.getString("universe");
 
-    // If no universe is provided, you might want to send an error message or default to a particular universe.
     if (!universe) {
-        return interaction.editReply(
+        // If no universe is provided, send an error message using editReply since the interaction is already deferred
+        await interaction.editReply(
             "Please specify a universe using the `/list universe:<universe_name>` command."
         );
+        return;
     }
 
-    const embed = await linksListEmbed(interaction.guild, universe); // Passing the guild object and universe to the function
-    interaction.editReply({ embeds: [embed] });
+    const embed = await linksListEmbed(interaction.guild, universe);
+    await interaction.editReply({ embeds: [embed] });
 }
 
 module.exports = listCommand;

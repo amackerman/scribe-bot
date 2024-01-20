@@ -32,6 +32,31 @@ const createCommand = async (interaction, client, authenticatedClient) => {
     await interaction.deferReply();
 
     const thread = interaction.channel;
+
+    // Check if a document for this thread already exists
+    let docStorage;
+    try {
+        const fileContent = await fs.readFile(DOC_STORAGE_PATH, "utf8");
+        docStorage = JSON.parse(fileContent);
+    } catch (error) {
+        console.error(
+            "Could not read docStorage.json, initializing empty storage.",
+            error
+        );
+        docStorage = {};
+    }
+
+    if (docStorage[thread.id]) {
+        // Document already exists for this thread
+        interaction.editReply({
+            content: `A document titled '${
+                docStorage[thread.id].title
+            }' already exists for this thread.`,
+            ephemeral: true,
+        });
+        return; // Stop execution
+    }
+
     try {
         const messages = await fetchAllMessages(thread);
         const userMessages = [...messages.values()]
@@ -97,6 +122,7 @@ const createCommand = async (interaction, client, authenticatedClient) => {
             lastMessageId: userMessages[userMessages.length - 1].id,
             title: docName,
             wordCount: wordCount,
+            universe: chosenFolderId,
         };
         await fs.writeFile(
             DOC_STORAGE_PATH,
@@ -116,7 +142,7 @@ const createCommand = async (interaction, client, authenticatedClient) => {
             })
             .setFooter({ text: "Under Development" });
 
-        interaction.editReply({ embeds: [embed], ephemeral: true});
+        interaction.editReply({ embeds: [embed], ephemeral: true });
     } catch (error) {
         console.error("Error while creating the Google Doc:", error);
         interaction.editReply(
