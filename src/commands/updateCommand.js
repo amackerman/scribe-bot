@@ -1,8 +1,10 @@
 const { google } = require("googleapis");
 const fs = require("fs").promises;
 const path = require("path");
+const { SlashCommandBuilder } = require("discord.js");
+const { getAuthenticatedClient, checkTokenValidity } = require("../handlers/authHandler");
 
-const absolutePathToDocStorage = path.join(__dirname, "docStorage.json");
+const DOC_STORAGE_PATH = path.join(__dirname, '..', 'data', 'docStorage.json');
 const MAX_MESSAGES_PER_UPDATE = 75;
 
 async function appendTextToDoc(docs, docId, textToAppend) {
@@ -60,62 +62,57 @@ async function appendTextToDoc(docs, docId, textToAppend) {
 }
 
 async function fetchMessages(channel, lastMessageId, limit) {
-    const options = { limit, after: lastMessageId };
+    const options = lastMessageId ? { limit, after: lastMessageId } : { limit };
     const messages = await channel.messages.fetch(options);
-    return [...messages.values()].reverse(); // Reverse to maintain chronological order
+    return [...messages.values()].reverse();
 }
 
-async function updateCommand(interaction, authenticatedClient) {
-    console.log("Starting the update command...");
+async function updateCommand(interaction) {
     await interaction.deferReply();
-
     const threadId = interaction.channelId;
-    const docStorageRaw = await fs.readFile(absolutePathToDocStorage, "utf-8");
+    const docStorageRaw = await fs.readFile(DOC_STORAGE_PATH, "utf-8");
     const docStorage = JSON.parse(docStorageRaw);
+    const docId = docStorage[threadId]?.googleDocId;
 
-    if (!docStorage[threadId] || !docStorage[threadId].googleDocId) {
-        await interaction.editReply(
-            `Missing document ID in docStorage for thread: ${threadId}`
-        );
+    if (!docId) {
+        await interaction.editReply("No associated document for this thread.");
         return;
     }
 
-    const docId = docStorage[threadId].googleDocId;
+    // Check token validity before proceeding
+    const authenticatedClient = await checkTokenValidity(interaction.client, interaction);
+    if (!authenticatedClient) {
+        // Token is invalid, and checkTokenValidity should handle notifying the user.
+        return;
+    }
+
     const docs = google.docs({ version: "v1", auth: authenticatedClient });
-    let lastMessageId = docStorage[threadId].lastMessageId || "0";
+    const lastMessageId = docStorage[threadId].lastMessageId;
+    const messages = await fetchMessages(interaction.channel, lastMessageId, MAX_MESSAGES_PER_UPDATE);
 
-    const messages = await fetchMessages(
-        interaction.channel,
-        lastMessageId,
-        MAX_MESSAGES_PER_UPDATE
-    );
-
-    if (messages.length === 0) {
+    if (!messages.length) {
         await interaction.editReply("No new messages to update.");
         return;
     }
 
     const messagesToAppend = messages
         .filter((message) => message.author.id !== interaction.client.user.id)
-        .map((message) => "\t" + message.content.replace(/\n/g, "\n\t") + "\n")
+        .map((message) => `${message.content}\n`)
         .join("");
 
     await appendTextToDoc(docs, docId, messagesToAppend);
+    docStorage[threadId].lastMessageId = messages[0].id;
 
-    // Update the lastMessageId with the ID of the newest message fetched
-    lastMessageId = messages[0].id;
-    docStorage[threadId].lastMessageId = lastMessageId;
-
-    await fs.writeFile(
-        absolutePathToDocStorage,
-        JSON.stringify(docStorage, null, 2),
-        "utf-8"
-    );
-
-    await interaction.editReply(
-        "Successfully updated the Google Doc with new messages."
-    );
-    console.log("Update command completed successfully.");
+    await fs.writeFile(DOC_STORAGE_PATH, JSON.stringify(docStorage, null, 4));
+    await interaction.editReply("Document updated with new messages.");
 }
 
-module.exports = updateCommand;
+const commandData = new SlashCommandBuilder()
+    .setName('update')
+    .setDescription('Updates the Google Doc with new messages from the thread.');
+
+module.exports = {
+    data: commandData.toJSON(),
+    execute: updateCommand,
+    needsAuthentication: true, // Indicates that this command requires authentication
+};
