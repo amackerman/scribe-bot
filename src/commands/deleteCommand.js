@@ -2,19 +2,34 @@ const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = re
 const { google } = require('googleapis');
 const fs = require('fs').promises;
 const path = require('path'); 
+const { checkTokenAndNotifyIfNeeded } = require('../handlers/authHandler'); // Make sure this path is correct
 const DOC_STORAGE_PATH = path.join(__dirname, '..', 'data', 'docStorage.json');
 
 async function deleteGoogleDoc(interaction) {
-    // Check if there's a document associated with this thread/channel before showing buttons
-    const docStorageContent = await fs.readFile(DOC_STORAGE_PATH, 'utf8');
-    const docStorage = JSON.parse(docStorageContent);
-    const threadId = interaction.channelId;
+    // Initially defer the reply to give more time for processing
+    await interaction.deferReply({ ephemeral: true });
 
+    // Authenticate and notify if needed. Stop if authentication fails.
+    const authenticatedClient = await checkTokenAndNotifyIfNeeded(interaction);
+    if (!authenticatedClient) {
+        // Authentication failed and notification is handled within checkTokenAndNotifyIfNeeded
+        return;
+    }
+
+    // Check if there's a document associated with this thread/channel before showing buttons
+    let docStorage;
+    try {
+        const docStorageContent = await fs.readFile(DOC_STORAGE_PATH, 'utf8');
+        docStorage = JSON.parse(docStorageContent);
+    } catch (error) {
+        console.error("Failed to read document storage:", error);
+        await interaction.editReply("Error: Failed to access document storage.");
+        return;
+    }
+
+    const threadId = interaction.channelId;
     if (!docStorage[threadId] || !docStorage[threadId].googleDocId) {
-        await interaction.reply({
-            content: 'Error: No associated Google Doc found for this thread.',
-            ephemeral: true,
-        });
+        await interaction.editReply('Error: No associated Google Doc found for this thread.');
         return;
     }
 
@@ -30,7 +45,8 @@ async function deleteGoogleDoc(interaction) {
 
     const row = new ActionRowBuilder().addComponents(confirmButton, cancelButton);
 
-    await interaction.reply({
+    // Ensure only one reply is sent by using editReply instead of a new reply
+    await interaction.editReply({
         content: 'Are you sure you want to delete this Google Doc?',
         components: [row],
         ephemeral: true,
@@ -44,5 +60,5 @@ const commandData = new SlashCommandBuilder()
 module.exports = {
     data: commandData.toJSON(),
     execute: deleteGoogleDoc,
-    needsAuthentication: true,
+    needsAuthentication: true, // This flag isn't inherently functional but can be used for reference or future logic
 };

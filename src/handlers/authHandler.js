@@ -1,11 +1,12 @@
 const fs = require('fs');
 const { google } = require('googleapis');
-const readline = require('readline');
 require('dotenv').config();
 
 const TOKEN_PATH = 'token.json';
 const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+const USER_ID_FOR_NOTIFICATIONS = 'YOUR_DISCORD_USER_ID'; // Replace with the actual user ID
 
+// Function to load the stored token
 function loadToken() {
     if (fs.existsSync(TOKEN_PATH)) {
         return JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf8'));
@@ -13,87 +14,64 @@ function loadToken() {
     return null;
 }
 
+// Function to save the token to a file
 function saveToken(token) {
     fs.writeFileSync(TOKEN_PATH, JSON.stringify(token));
     console.log('Token stored to', TOKEN_PATH);
 }
 
-async function getNewToken(oAuth2Client) {
-    const authUrl = oAuth2Client.generateAuthUrl({
+// Function to create an OAuth2 client
+function createOAuth2Client() {
+    return new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI
+    );
+}
+
+// Function to generate the authorization URL
+function generateAuthUrl(oAuth2Client) {
+    return oAuth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: SCOPES,
     });
-    console.log('Authorize this app by visiting this url:', authUrl);
-
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-    });
-
-    return new Promise((resolve, reject) => {
-        rl.question('Enter the code from that page here: ', (code) => {
-            rl.close();
-            oAuth2Client.getToken(code, (err, token) => {
-                if (err) {
-                    console.error('Error while trying to retrieve access token', err);
-                    reject(err);
-                }
-                resolve(token);
-            });
-        });
-    });
 }
 
-async function getAuthenticatedClient() {
-    const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI } = process.env;
+// Function to exchange the authorization code for tokens
+async function exchangeCodeForToken(code) {
+    const oAuth2Client = createOAuth2Client();
+    const { tokens } = await oAuth2Client.getToken(code);
+    return tokens;
+}
 
-    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-        throw new Error('Missing Google API client credentials');
-    }
-
-    const oAuth2Client = new google.auth.OAuth2(
-        GOOGLE_CLIENT_ID,
-        GOOGLE_CLIENT_SECRET,
-        GOOGLE_REDIRECT_URI || 'urn:ietf:wg:oauth:2.0:oob'
-    );
-
+// Main function to check token validity and notify if needed
+async function checkTokenAndNotifyIfNeeded(interaction) {
     let token = loadToken();
 
-    if (token) {
-        oAuth2Client.setCredentials(token);
-    } else {
-        console.warn('No token found. Generating a new one...');
-        token = await getNewToken(oAuth2Client).catch(console.error);
-        if (token) {
-            saveToken(token);
-            oAuth2Client.setCredentials(token);
+    if (!token || new Date(token.expiry_date) <= new Date()) {
+        // Token is expired or missing, notify the user
+        if (interaction) {
+            await interaction.reply({
+                content: `<@${USER_ID_FOR_NOTIFICATIONS}>, the bot's token for Google API has expired. Please refresh it manually.`,
+                ephemeral: false,
+            });
         } else {
-            throw new Error('Failed to authenticate Google API client');
+            console.log('Token needs refresh. Please manually refresh the token.');
+            // Log the auth URL to the console for manual refresh
+            const authUrl = generateAuthUrl(createOAuth2Client());
+            console.log(`Authorize this app by visiting this URL: ${authUrl}`);
         }
+        return null;
     }
 
+    // If the token is valid, return the authenticated client
+    const oAuth2Client = createOAuth2Client();
+    oAuth2Client.setCredentials(token);
     return oAuth2Client;
 }
 
-async function checkTokenValidity(discordClient, interaction) {
-    const oAuth2Client = await getAuthenticatedClient();
-    try {
-        await google.drive({ version: 'v3', auth: oAuth2Client }).files.list({
-            pageSize: 1,
-        });
-        // If the call succeeds, the token is valid
-        return oAuth2Client;
-    } catch (error) {
-        console.error('Token validation failed:', error);
-        // Notify in the channel where the command was called
-        const funnyMessage = "Oops! My connection to the Google brain is experiencing hiccups. 🤖💔🧠 Could someone give it a gentle kick? 🦶";
-        await interaction.reply({ content: `<@689247771936555023>, ${funnyMessage}`, ephemeral: false });
-        return null;
-    }
-}
-
 module.exports = {
-    getAuthenticatedClient,
-    checkTokenValidity,
+    checkTokenAndNotifyIfNeeded,
+    saveToken, // Exporting for use after manually exchanging the code
+    exchangeCodeForToken, // Exporting for use in OAuth callback handling
 };
-

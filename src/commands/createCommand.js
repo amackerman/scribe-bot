@@ -2,7 +2,7 @@ const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { google } = require("googleapis");
 const fs = require("fs").promises;
 const path = require("path");
-const { checkTokenValidity } = require("../handlers/authHandler");
+const { checkTokenAndNotifyIfNeeded } = require("../handlers/authHandler"); // Make sure this is correctly imported
 require("dotenv").config();
 
 const DOC_STORAGE_PATH = path.join(__dirname, "..", "data", "docStorage.json");
@@ -31,21 +31,24 @@ async function fetchAllMessages(channel) {
 }
 
 const createCommand = async (interaction) => {
+    // Initially defer the reply to give more time for processing
     await interaction.deferReply({ ephemeral: true });
+
+    // Authenticate and notify if needed. Stop if authentication fails.
+    const authenticatedClient = await checkTokenAndNotifyIfNeeded(interaction);
+    if (!authenticatedClient) {
+        // Since authentication failed and notification is handled within checkTokenAndNotifyIfNeeded, just return
+        return;
+    }
+
     const universe = interaction.options.getString("universe");
     const docName = interaction.options.getString("docname");
     const folderId = process.env[`${universe}_FOLDER_ID`];
 
     if (!folderId) {
-        await interaction.editReply({
-            content: `The specified universe '${universe}' does not have a corresponding folder ID configured.`,
-            ephemeral: true,
-        });
+        await interaction.editReply(`The specified universe '${universe}' does not have a corresponding folder ID configured.`);
         return;
     }
-
-    const authenticatedClient = await checkTokenValidity(interaction.client, interaction);
-    if (!authenticatedClient) return;
 
     const thread = interaction.channel;
 
@@ -55,13 +58,12 @@ const createCommand = async (interaction) => {
         docStorage = JSON.parse(fileContent);
     } catch (error) {
         console.error("Error reading docStorage.json:", error);
+        await interaction.editReply("Failed to read document storage. Please try again later.");
+        return;
     }
 
     if (docStorage[thread.id]) {
-        await interaction.editReply({
-            content: `A document titled '${docStorage[thread.id].title}' already exists for this thread.`,
-            ephemeral: true,
-        });
+        await interaction.editReply(`A document titled '${docStorage[thread.id].title}' already exists for this thread.`);
         return;
     }
 
@@ -89,12 +91,7 @@ const createCommand = async (interaction) => {
         await docs.documents.batchUpdate({
             documentId: doc.data.id,
             requestBody: {
-                requests: [{
-                    insertText: {
-                        location: { index: 1 },
-                        text: contentString,
-                    },
-                }],
+                requests: [{ insertText: { location: { index: 1 }, text: contentString } }],
             },
         });
 
@@ -122,10 +119,7 @@ const createCommand = async (interaction) => {
         await interaction.editReply({ embeds: [embed], ephemeral: true });
     } catch (error) {
         console.error("Failed to create Google Doc:", error);
-        await interaction.editReply({
-            content: `Failed to create Google Doc named '${docName}'. Please try again later.`,
-            ephemeral: true,
-        });
+        await interaction.editReply("Failed to create Google Doc. Please try again later.");
     }
 };
 
@@ -150,3 +144,4 @@ module.exports = {
     data: commandData.toJSON(),
     execute: createCommand,
 };
+

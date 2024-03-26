@@ -32,6 +32,16 @@ function generateInfoEmbed() {
                 name: "Generate Name Command",
                 value: "This command returns a randomly generated name based on chosen gender. ",
                 inline: false,
+            },
+            {
+                name: "Elvish Command",
+                value: "This command displays an embed of the Elvish prases and their meanings.",
+                inline: false,
+            },
+            {
+                name: "Add Elvish Command",
+                value: "This command adds an Elvish phrase and its meaning to the list. Please enclose meaning in [] for formatting purposes.",
+                inline: false,
             }
         )
         .setFooter({ text: "Under Development" });

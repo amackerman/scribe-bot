@@ -4,7 +4,7 @@ const { EmbedBuilder, SlashCommandBuilder } = require('discord.js');
 
 // Separating the logic to fetch Elvish phrases into its own async function for better structure
 async function fetchElvishPhrases() {
-    const filePath = path.join(__dirname, 'elvishPhrases.json');
+    const filePath = path.join(__dirname, '..', 'data', 'elvishPhrases.json');
     const data = await fs.readFile(filePath, 'utf8');
     return JSON.parse(data);
 }
@@ -14,13 +14,13 @@ async function createElvishEmbed() {
     const elvishPhrases = await fetchElvishPhrases();
     
     const fields = Object.entries(elvishPhrases).map(([english, elvish]) => {
-        return { name: `${elvish}`, value: english, inline: true };
+        return { name: elvish, value: english, inline: true };
     });
 
     return new EmbedBuilder()
         .setTitle('Elvish Phrases')
-        .setDescription('This is a list of Elvish phrases and their translations.')
-        .setColor(0x00AE86) // Changed to a hexadecimal color value for consistency
+        .setDescription('Here is a list of Elvish phrases and their translations.')
+        .setColor(0x00AE86) // Hexadecimal color value
         .addFields(fields)
         .setFooter({ text: 'Under Development' });
 }
@@ -29,7 +29,7 @@ async function createElvishEmbed() {
 async function elvishCommand(interaction) {
     await interaction.deferReply();
     const embed = await createElvishEmbed();
-    interaction.editReply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] }); // Use 'await' to ensure the promise resolves before moving on
 }
 
 const commandData = new SlashCommandBuilder()
@@ -37,7 +37,6 @@ const commandData = new SlashCommandBuilder()
     .setDescription('Displays a list of Elvish phrases and their translations.');
 
 module.exports = {
-    data: commandData,
+    data: commandData.toJSON(),
     execute: elvishCommand,
-    // No need for authentication, so no `needsAuthentication` property
 };
