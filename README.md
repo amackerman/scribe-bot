@@ -101,7 +101,7 @@ OAUTH_SERVER_PORT=your_oauth_server_port_here
 AOA_FOLDER_ID=your_aoa_folder_id_here
 KIDSVERSE_FOLDER_ID=your_kidsverse_folder_id_here
 TESTS_FOLDER_ID=your_tests_folder_id_here
-
+```
 ### 4. Run the Bot
 
 ```bash
