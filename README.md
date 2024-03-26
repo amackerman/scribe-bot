@@ -143,15 +143,15 @@ Here’s how to use the example file:
   "[another example phrase]": "*AnotherElvishTranslation*",
   "[more examples]": "*MoreExamplesInElvish*"
 }
+```
 
-
-### docStorage.json
+### docStorage.json Example and Explaination
 
 The `docStorage.json` file plays a critical role in managing the association between Discord threads and Google Docs created by Scribe Bot. It includes vital information such as Google Doc IDs, titles, last message IDs, word counts, universe identifiers, and folder IDs where each document is stored.
 
 Due to privacy and security considerations, the actual `docStorage.json` is not included in the repository. Instead, an example file named `docStorageExample.json` is provided to illustrate the expected structure and format.
 
-### docStorageExample.json Example Explanation
+**docStorageExample.json Example**
 
 This example file demonstrates the required structure for linking Discord threads to their corresponding Google Docs. Each thread is identified by a unique ID (in this case, `exampleThreadId`), mapping to an object containing:
 
