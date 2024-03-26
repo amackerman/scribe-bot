@@ -1,1 +1,10 @@
-{}
+{
+    "exampleThreadId": {
+      "googleDocId": "exampleGoogleDocId",
+      "title": "Example Title",
+      "lastMessageId": "exampleLastMessageId",
+      "wordCount": 1234,
+      "universe": "ExampleUniverse",
+      "folderId": "exampleFolderId"
+    }
+  }
