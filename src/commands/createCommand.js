@@ -41,9 +41,9 @@ const createCommand = async (interaction) => {
         return;
     }
 
-    const universe = interaction.options.getString("universe");
-    const docName = interaction.options.getString("docname");
+    const universe = interaction.options.getString("universe").toUpperCase(); // Convert to uppercase
     const folderId = process.env[`${universe}_FOLDER_ID`];
+    const docName = interaction.options.getString("docname");
 
     if (!folderId) {
         await interaction.editReply(`The specified universe '${universe}' does not have a corresponding folder ID configured.`);
