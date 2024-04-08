@@ -2,7 +2,7 @@ const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { google } = require("googleapis");
 const fs = require("fs").promises;
 const path = require("path");
-const { checkTokenAndNotifyIfNeeded } = require("../handlers/authHandler"); // Make sure this is correctly imported
+const { checkTokenAndNotifyIfNeeded } = require("../handlers/authHandler");
 require("dotenv").config();
 
 const DOC_STORAGE_PATH = path.join(__dirname, "..", "data", "docStorage.json");
@@ -31,15 +31,15 @@ async function fetchAllMessages(channel) {
 }
 
 const createCommand = async (interaction) => {
-    // Initially defer the reply to give more time for processing
-    await interaction.deferReply({ ephemeral: true });
-
     // Authenticate and notify if needed. Stop if authentication fails.
     const authenticatedClient = await checkTokenAndNotifyIfNeeded(interaction);
     if (!authenticatedClient) {
         // Since authentication failed and notification is handled within checkTokenAndNotifyIfNeeded, just return
         return;
     }
+
+    // Now that we've ensured the token is valid, proceed to defer the reply.
+    await interaction.deferReply({ ephemeral: true });
 
     const universe = interaction.options.getString("universe").toUpperCase(); // Convert to uppercase
     const folderId = process.env[`${universe}_FOLDER_ID`];
@@ -144,4 +144,3 @@ module.exports = {
     data: commandData.toJSON(),
     execute: createCommand,
 };
-

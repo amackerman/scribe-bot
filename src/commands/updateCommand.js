@@ -52,13 +52,15 @@ async function fetchMessages(channel, lastMessageId, limit) {
 }
 
 async function updateCommand(interaction) {
-    await interaction.deferReply({ ephemeral: true });
-
+    // First, check the token and notify if needed, before deferring the reply.
     const authenticatedClient = await checkTokenAndNotifyIfNeeded(interaction);
     if (!authenticatedClient) {
         // If authentication failed, the interaction has already been replied to in checkTokenAndNotifyIfNeeded
         return;
     }
+
+    // Now that we've ensured the token is valid, proceed to defer the reply.
+    await interaction.deferReply({ ephemeral: true });
 
     const threadId = interaction.channelId;
     let docStorage = await fs.readFile(DOC_STORAGE_PATH, "utf-8").then(JSON.parse).catch((error) => {
@@ -89,7 +91,7 @@ async function updateCommand(interaction) {
 
     try {
         await appendTextToDoc(docs, docId, textToAppend);
-        docStorage[threadId].lastMessageId = messages[0].id;
+        docStorage[threadId].lastMessageId = messages[messages.length - 1].id; // Ensure this is the last message processed
         await fs.writeFile(DOC_STORAGE_PATH, JSON.stringify(docStorage, null, 4));
         await interaction.editReply("Document updated with new messages.");
     } catch (error) {
