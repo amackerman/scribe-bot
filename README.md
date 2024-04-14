@@ -4,9 +4,10 @@ Scribe Bot is a Discord bot designed to scrape messages from a thread into a Goo
 
 ## Current Features
 
-- Scrape Discord thread messages and insert into a Google Doc.
+- Scrape Discord thread messages and insert them into a Google Doc.
 - Multiple save folder options for Google Docs.
 - Command-driven operations via Discord.
+- Google Apps Script to format documents when Discord API returns markdown.
 
 ## Pre-requisites
 
@@ -165,6 +166,29 @@ This example file demonstrates the required structure for linking Discord thread
 Please replace the placeholder values with actual data relevant to your application while maintaining the privacy of your real `docStorage.json` file.
 
 **Note**: It is crucial to maintain the privacy of your `docStorage.json` file to protect the integrity of your data and the privacy of your Discord community.
+
+## Google Apps Utility Script
+
+I have included a Google Apps utility script to format the document.  When the bot scrapes a thread, Discord takes any formatting, such as italics or bold, and turns it into markdown. This is what is initially inserted into the Google Doc. When this script is run, it will reformat the Google Doc.
+
+### Using a Google Script
+
+1.  **Open Google Apps Script:** Go to https://script.google.com/ and sign in with your Google account.
+2.  **Create a New Project:** Click on New Project. You'll be taken to the script editor.
+3.  **Replace the Placeholder Code:** In the script editor, you'll see some placeholder content. Delete this, and paste in the code you copied from GitHub.
+4.  **Save and Name Your Project:** Give your project a meaningful name that relates to its function, such as "Formatting from Markdown".
+  - You will need to replace `var DOC_ID` with the ID of the document you want to copy.  The example below shows where it is found.
+  - `https://docs.google.com/document/d/THIS STRING OF LETTERS AND NUMBERS IS THE DOCUMENT ID/edit`
+5.  **Click the play icon** (`▶`) to attempt to run the function.
+
+6. **Grant Permissions**:
+  - A dialog box will appear asking you to review permissions for the script. Click `Review Permissions`.
+  - Select your account and continue.
+  - If you encounter a screen that says "Google hasn’t verified this app," click `Advanced` and then `Go to (your project's name) (unsafe)` to proceed.
+  - Review the list of permissions the script is requesting and click `Allow` to grant them.
+
+**Note**: The script is considered "unsafe" only because it is not verified by Google, which is typical for custom scripts. As long as you trust the source of the script, it is safe to proceed.
+
 
 ## Contributing
 
