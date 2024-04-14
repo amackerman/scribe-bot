@@ -9,13 +9,19 @@ const USER_ID_FOR_NOTIFICATIONS = 'YOUR_DISCORD_USER_ID'; // Replace with the ac
 // Function to load the stored token
 function loadToken() {
     if (fs.existsSync(TOKEN_PATH)) {
-        return JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf8'));
+        const token = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf8'));
+        console.log("Loaded token:", token);
+        return token;
     }
     return null;
 }
 
 // Function to save the token to a file
 function saveToken(token) {
+    console.log("Saving tokens:", token);
+    if (!token.refresh_token) {
+        console.log('Warning: No refresh token is included in the token data.');
+    }
     fs.writeFileSync(TOKEN_PATH, JSON.stringify(token));
     console.log('Token stored to', TOKEN_PATH);
 }
@@ -41,6 +47,7 @@ function generateAuthUrl(oAuth2Client) {
 async function exchangeCodeForToken(code) {
     const oAuth2Client = createOAuth2Client();
     const { tokens } = await oAuth2Client.getToken(code);
+    saveToken(tokens);  // Save the received tokens, including the refresh token if present
     return tokens;
 }
 
@@ -49,24 +56,32 @@ async function checkTokenAndNotifyIfNeeded(interaction) {
     let token = loadToken();
 
     if (!token || new Date(token.expiry_date) <= new Date()) {
-        // Token is expired or missing, notify the user
+        console.log('Token is expired or missing. Initiating manual refresh process.');
+        // Notify the user or log to the console about the need to refresh
         if (interaction) {
             await interaction.reply({
-                content: `<@${USER_ID_FOR_NOTIFICATIONS}>, the bot's token for Google API has expired. Please refresh it manually.`,
-                ephemeral: false,
+                content: `<@${USER_ID_FOR_NOTIFICATIONS}>, the bot's token for Google API has expired. Please refresh it manually by clicking the link below.`,
+                ephemeral: true
             });
-        } else {
-            console.log('Token needs refresh. Please manually refresh the token.');
-            // Log the auth URL to the console for manual refresh
-            const authUrl = generateAuthUrl(createOAuth2Client());
-            console.log(`Authorize this app by visiting this URL: ${authUrl}`);
         }
+        
+        // Log the auth URL to the console for manual refresh
+        const authUrl = generateAuthUrl(createOAuth2Client());
+        console.log(`Authorize this app by visiting this URL: ${authUrl}`);
+        
         return null;
     }
 
     // If the token is valid, return the authenticated client
     const oAuth2Client = createOAuth2Client();
     oAuth2Client.setCredentials(token);
+    
+    if (oAuth2Client.isTokenExpiring()) {
+        console.log('Access token is expiring soon. Please refresh manually.');
+        const authUrl = generateAuthUrl(createOAuth2Client());
+        console.log(`Refresh your access by visiting this URL: ${authUrl}`);
+    }
+    
     return oAuth2Client;
 }
 
